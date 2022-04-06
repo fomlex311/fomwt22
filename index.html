@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOM WEB 22 - Multiplayer Prototype</title>
+</head>
+<body>
+    <h1>Express Page</h1>
+    <button id="btnCreateGame">New Game!</button>
+    <button id="btnJoinGame">Join Game!</button>
+    <input type="text" id="txtGameID">
+    <div id = "divPlayers"></div>
+    
+    <script> 
+        //HTML Elements
+        let clientID = null;
+        let gameID = null;
+        let ws =  new WebSocket("ws://localhost:9090")
+        const btnCreateGame = document.getElementById("btnCreateGame")
+        const btnJoinGame = document.getElementById("btnJoinGame")
+        const txtGameID = document.getElementById("txtGameID")
+        const divPlayers = document.getElementById("divPlayers")
+
+        //Events
+        btnJoinGame.addEventListener("click", e => {
+
+            if(gameID === null)
+                gameID = txtGameID.value;
+
+            const payLoad = {
+                "method": "join",
+                "clientID": clientID,
+                "gameID": gameID
+            }
+            ws.send(JSON.stringify(payLoad));
+
+        })
+        btnCreateGame.addEventListener("click", e => {
+
+            const payLoad = {
+                "method": "create",
+                "clientID": clientID
+            }
+            ws.send(JSON.stringify(payLoad));
+        })
+
+
+        ws.onmessage =  message => {
+            //message.data
+            const response = JSON.parse(message.data);
+            //connect
+            if (response.method === "connect")
+            {
+                clientID = response.clientID;
+                console.log("Client ID set successfully" + clientID)
+            }
+             //create
+            if (response.method === "create")
+            {
+                gameID = response.game.id;
+                console.log("Game successfully created with ID " + response.game.id + " with "+ response.game.balls + " balls")     
+            }
+            //join
+            if (response.method === "join")
+            {
+                const game = response.game;
+
+                while(divPlayers.firstChild)
+                        divPlayers.removeChild(divPlayers.firstChild)
+
+                game.clients.forEach (c => {
+                    const d = document.createElement("div");
+                    d.style.width = "200px";
+                    d.style.background = c.color;
+                    d.textContent = c.clientID;
+                    divPlayers.appendChild(d);
+
+                    if (c.clientID === clientID) playerColor = c.color;
+                });
+                     
+            }
+        }
+    </script>
+</body>
+</html>
